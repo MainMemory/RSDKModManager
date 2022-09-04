@@ -5,6 +5,8 @@ VisualStudioVersion = 16.0.32630.194
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RSDKModManager", "RSDKModManager\RSDKModManager.csproj", "{10AAB215-D5D4-4E4F-B384-AA8ABB0AC48A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModManagerCommon", "mod-loader-common\ModManagerCommon\ModManagerCommon.csproj", "{4A480502-79B5-4E1E-8D67-16C514BB13CD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{10AAB215-D5D4-4E4F-B384-AA8ABB0AC48A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{10AAB215-D5D4-4E4F-B384-AA8ABB0AC48A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{10AAB215-D5D4-4E4F-B384-AA8ABB0AC48A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4A480502-79B5-4E1E-8D67-16C514BB13CD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4A480502-79B5-4E1E-8D67-16C514BB13CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4A480502-79B5-4E1E-8D67-16C514BB13CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4A480502-79B5-4E1E-8D67-16C514BB13CD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

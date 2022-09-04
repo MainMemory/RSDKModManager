@@ -41,9 +41,6 @@
 			this.textModDescription = new System.Windows.Forms.TextBox();
 			this.textVersion = new System.Windows.Forms.TextBox();
 			this.label4 = new System.Windows.Forms.Label();
-			this.checkBSTempo = new System.Windows.Forms.CheckBox();
-			this.checkSpeedShoesTempo = new System.Windows.Forms.CheckBox();
-			this.label5 = new System.Windows.Forms.Label();
 			this.tabControl1 = new System.Windows.Forms.TabControl();
 			this.tabPage1 = new System.Windows.Forms.TabPage();
 			this.tabPage2 = new System.Windows.Forms.TabPage();
@@ -178,37 +175,6 @@
 			this.label4.TabIndex = 4;
 			this.label4.Text = "Version:";
 			// 
-			// checkBSTempo
-			// 
-			this.checkBSTempo.AutoSize = true;
-			this.checkBSTempo.FlatStyle = System.Windows.Forms.FlatStyle.System;
-			this.checkBSTempo.Location = new System.Drawing.Point(90, 156);
-			this.checkBSTempo.Name = "checkBSTempo";
-			this.checkBSTempo.Size = new System.Drawing.Size(171, 18);
-			this.checkBSTempo.TabIndex = 9;
-			this.checkBSTempo.Text = "Blue Spheres Tempo Change";
-			this.checkBSTempo.UseVisualStyleBackColor = true;
-			// 
-			// checkSpeedShoesTempo
-			// 
-			this.checkSpeedShoesTempo.AutoSize = true;
-			this.checkSpeedShoesTempo.FlatStyle = System.Windows.Forms.FlatStyle.System;
-			this.checkSpeedShoesTempo.Location = new System.Drawing.Point(90, 180);
-			this.checkSpeedShoesTempo.Name = "checkSpeedShoesTempo";
-			this.checkSpeedShoesTempo.Size = new System.Drawing.Size(172, 18);
-			this.checkSpeedShoesTempo.TabIndex = 10;
-			this.checkSpeedShoesTempo.Text = "Speed Shoes Tempo Change";
-			this.checkSpeedShoesTempo.UseVisualStyleBackColor = true;
-			// 
-			// label5
-			// 
-			this.label5.AutoSize = true;
-			this.label5.Location = new System.Drawing.Point(46, 158);
-			this.label5.Name = "label5";
-			this.label5.Size = new System.Drawing.Size(38, 13);
-			this.label5.TabIndex = 8;
-			this.label5.Text = "Music:";
-			// 
 			// tabControl1
 			// 
 			this.tabControl1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
@@ -225,11 +191,8 @@
 			// tabPage1
 			// 
 			this.tabPage1.Controls.Add(this.label1);
-			this.tabPage1.Controls.Add(this.label5);
 			this.tabPage1.Controls.Add(this.label2);
-			this.tabPage1.Controls.Add(this.checkSpeedShoesTempo);
 			this.tabPage1.Controls.Add(this.label3);
-			this.tabPage1.Controls.Add(this.checkBSTempo);
 			this.tabPage1.Controls.Add(this.textModName);
 			this.tabPage1.Controls.Add(this.label4);
 			this.tabPage1.Controls.Add(this.textModAuthor);
@@ -383,9 +346,6 @@
 		private System.Windows.Forms.TextBox textModDescription;
         private System.Windows.Forms.TextBox textVersion;
         private System.Windows.Forms.Label label4;
-        private System.Windows.Forms.CheckBox checkBSTempo;
-        private System.Windows.Forms.CheckBox checkSpeedShoesTempo;
-        private System.Windows.Forms.Label label5;
 		private System.Windows.Forms.TabControl tabControl1;
 		private System.Windows.Forms.TabPage tabPage1;
 		private System.Windows.Forms.TabPage tabPage2;

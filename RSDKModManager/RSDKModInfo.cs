@@ -6,11 +6,8 @@ using System.IO;
 
 namespace RSDKModManager
 {
-	public class ManiaModInfo : ModInfo
+	public class RSDKModInfo : ModInfo
 	{
-		public bool BlueSpheresTempoChange { get; set; }
-		public bool SpeedShoesTempoChange { get; set; }
-
 		public static new IEnumerable<string> GetModFiles(DirectoryInfo directoryInfo)
 		{
 			string modini = Path.Combine(directoryInfo.FullName, "mod.ini");

@@ -12,8 +12,7 @@ namespace RSDKModManager
 {
 	static class Program
 	{
-		private const string pipeName = "mania-mod-manager";
-		private const string protocol = "smmm:";
+		private const string pipeName = "rsdk-mod-manager";
 		private static readonly Mutex mutex = new Mutex(true, pipeName);
 		public static UriQueue UriQueue;
 
@@ -23,12 +22,12 @@ namespace RSDKModManager
 		[STAThread]
 		static void Main(string[] args)
 		{
-			if (args.Length > 0 && args[0] == "urlhandler")
+			if (args.Length > 1 && args[0] == "urlhandler")
 			{
 				using (var hkcr = Registry.ClassesRoot)
-				using (var key = hkcr.CreateSubKey("smmm"))
+				using (var key = hkcr.CreateSubKey(args[1]))
 				{
-					key.SetValue(null, "URL:Mania Mod Manager Protocol");
+					key.SetValue(null, "URL:RSDK Mod Manager Protocol");
 					key.SetValue("URL Protocol", string.Empty);
 					using (var k2 = key.CreateSubKey("DefaultIcon"))
 						k2.SetValue(null, Application.ExecutablePath + ",1");
@@ -76,7 +75,6 @@ namespace RSDKModManager
 			}
 
 			List<string> uris = args
-				.Where(x => x.Length > protocol.Length && x.StartsWith(protocol, StringComparison.Ordinal))
 				.ToList();
 
 			if (uris.Count > 0)

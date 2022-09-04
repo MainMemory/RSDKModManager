@@ -34,14 +34,12 @@ namespace RSDKModManager
 
 				Directory.CreateDirectory(moddir);
 
-				ManiaModInfo newMod = new ManiaModInfo
+				RSDKModInfo newMod = new RSDKModInfo
 				{
 					Name             = textModName.Text,
 					Author           = textModAuthor.Text,
 					Description      = textModDescription.Text,
 					Version          = textVersion.Text,
-					BlueSpheresTempoChange = checkBSTempo.Checked,
-					SpeedShoesTempoChange = checkSpeedShoesTempo.Checked,
 					GitHubRepo       = textGitHubRepo.Text,
 					GitHubAsset      = textGitHubAttachment.Text,
 					UpdateUrl        = textDirUrl.Text

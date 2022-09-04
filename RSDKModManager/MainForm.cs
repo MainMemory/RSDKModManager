@@ -27,22 +27,10 @@ namespace RSDKModManager
 		private bool checkedForUpdates;
 
 		const string updatePath = "mods/.updates";
-		const string datadllpath = "d3d9.dll";
-		const string loaderinipath = "mods/ManiaModLoader.ini";
-		const string loaderdllpath = "mods/ManiaModLoader.dll";
-		const string loaderegsdllpath = "mods/ManiaModLoaderEGS.dll";
-		ManiaLoaderInfo loaderini;
-		Dictionary<string, ManiaModInfo> mods;
-		const string codelstpath = "mods/Codes.lst";
-		const string codelegsstpath = "mods/CodesEGS.lst";
-		const string codexmlpath = "mods/Codes.xml";
-		const string codedatpath = "mods/Codes.dat";
-		const string patchdatpath = "mods/Patches.dat";
-		CodeList mainCodes;
-		List<Code> codes;
-		bool installed;
-		bool suppressEvent;
-		Platform platform = Platform.Steam;
+		const string loaderinipath = "mods/RSDKModManager.ini";
+		const string modconfigpath = "mods/modConfig.ini";
+		RSDKLoaderInfo loaderini;
+		Dictionary<string, RSDKModInfo> mods;
 
 		readonly ModUpdater modUpdater = new ModUpdater();
 		BackgroundWorker updateChecker;
@@ -86,53 +74,15 @@ namespace RSDKModManager
 			if (!Debugger.IsAttached)
 				Environment.CurrentDirectory = Application.StartupPath;
 			SetDoubleBuffered(modListView, true);
-			loaderini = File.Exists(loaderinipath) ? IniSerializer.Deserialize<ManiaLoaderInfo>(loaderinipath) : new ManiaLoaderInfo();
+			loaderini = File.Exists(loaderinipath) ? IniSerializer.Deserialize<RSDKLoaderInfo>(loaderinipath) : new RSDKLoaderInfo();
 
-			if (File.Exists("EOSSDK-Win32-Shipping.dll"))
-				platform = Platform.EGS;
-
-			if (platform == Platform.EGS && !loaderini.WarningShown)
-			{
-				MessageBox.Show(this, "EGS version of Sonic Mania has been detected.\n" +
-					"Keep in mind not all mods will work correctly on this version.\n\n" +
-					"Please see the ManiaModLoader GameBanana page for more information.", 
-					"Mania Mod Loader", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-				loaderini.WarningShown = true;
-			}
-
-			// Show game platform on the title
-			Text += $" ({platform})";
-
-			try
-			{
-				if (File.Exists(codelstpath))
-					mainCodes = CodeList.Load(platform == Platform.Steam ? codelstpath : codelegsstpath);
-				else if (File.Exists(codexmlpath))
-					mainCodes = CodeList.Load(codexmlpath);
-				else
-					mainCodes = new CodeList();
-			}
-			catch (Exception ex)
-			{
-				MessageBox.Show(this, $"Error loading code list: {ex.Message}", "Mania Mod Loader", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-				mainCodes = new CodeList();
-			}
-
-			LoadModList();
-
-			enableDebugConsole.Checked = loaderini.EnableConsole;
-			startingScene.SelectedIndex = loaderini.StartingScene;
-			platformID.SelectedIndex = loaderini.Platform;
-			region.SelectedIndex = loaderini.Region;
-			origMusicPlayerCheckBox.Checked = loaderini.UseOriginalMusicPlayer;
-			speedShoesTempoCheckBox.Checked = loaderini.SpeedShoesTempoChange;
-			blueSpheresTempoCheckBox.Checked = loaderini.BlueSpheresTempoChange;
 			checkUpdateStartup.Checked = loaderini.UpdateCheck;
 			checkUpdateModsStartup.Checked = loaderini.ModUpdateCheck;
 			comboUpdateFrequency.SelectedIndex = (int)loaderini.UpdateUnit;
 			numericUpdateFrequency.Value = loaderini.UpdateFrequency;
 		}
 
+		string protocol;
 		private void HandleUri(string uri)
 		{
 			if (WindowState == FormWindowState.Minimized)
@@ -142,10 +92,16 @@ namespace RSDKModManager
 
 			Activate();
 
+			if (!uri.StartsWith(protocol))
+			{
+				MessageBox.Show(this, $"Unknown URL {uri}!", Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+				return;
+			}
+
 			Uri url;
 			string name;
 			string author;
-			string[] split = uri.Substring("smmm:".Length).Split(',');
+			string[] split = uri.Substring(protocol.Length).Split(',');
 			url = new Uri(split[0]);
 			Dictionary<string, string> fields = new Dictionary<string, string>(split.Length - 1);
 			for (int i = 1; i < split.Length; i++)
@@ -288,34 +244,39 @@ namespace RSDKModManager
 			if (CheckForUpdates())
 				return;
 
-			if (File.Exists(datadllpath))
+			if (string.IsNullOrEmpty(loaderini.EXEFile))
 			{
-				installed = true;
-				installButton.Text = "Uninstall loader";
-				using (MD5 md5 = MD5.Create())
-				{
-					byte[] hash1 = md5.ComputeHash(File.ReadAllBytes(platform == Platform.Steam ? loaderdllpath : loaderegsdllpath));
-					byte[] hash2 = md5.ComputeHash(File.ReadAllBytes(datadllpath));
-
-					if (!hash1.SequenceEqual(hash2))
+				using (OpenFileDialog dlg = new OpenFileDialog() { DefaultExt = "exe", Filter = "RSDK EXE Files|RSDKv*.exe;restored.exe;SonicForever.exe;Sonic2Absolute.exe|All Files|*", InitialDirectory = Environment.CurrentDirectory, RestoreDirectory = true, Title = "Locate the game's executable." })
+					if (dlg.ShowDialog(this) == DialogResult.OK)
 					{
-						DialogResult result = MessageBox.Show(this, "Installed loader DLL differs from copy in mods folder."
-							+ "\n\nDo you want to overwrite the installed copy?", Text, MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-
-						if (result == DialogResult.Yes)
-							File.Copy(platform == Platform.Steam ? loaderdllpath : loaderegsdllpath, datadllpath, true);
+						if (dlg.FileName.StartsWith(Environment.CurrentDirectory))
+							loaderini.EXEFile = dlg.FileName.Substring(Environment.CurrentDirectory.Length + 1);
+						else
+							loaderini.EXEFile = dlg.FileName;
 					}
-				}
+					else
+					{
+						Close();
+						return;
+					}
 			}
 
-			List<string> uris = Program.UriQueue.GetUris();
+			LoadModList();
 
-			foreach (string str in uris)
+			if (loaderini.Game.HasValue)
 			{
-				HandleUri(str);
+				SetURLProtocol();
+
+				List<string> uris = Program.UriQueue.GetUris();
+
+				foreach (string str in uris)
+				{
+					HandleUri(str);
+				}
+
+				Program.UriQueue.UriEnqueued += UriQueueOnUriEnqueued;
 			}
 
-			Program.UriQueue.UriEnqueued += UriQueueOnUriEnqueued;
 
 			CheckForModUpdates();
 
@@ -325,6 +286,31 @@ namespace RSDKModManager
 			if (checkedForUpdates)
 			{
 				IniSerializer.Serialize(loaderini, loaderinipath);
+			}
+		}
+
+		private void SetURLProtocol()
+		{
+			switch (loaderini.Game.Value)
+			{
+				case Game.SonicCD:
+					protocol = "scdmm:";
+					break;
+				case Game.Sonic1:
+					protocol = "s1mm:";
+					break;
+				case Game.Sonic2:
+					protocol = "s2mm:";
+					break;
+				case Game.SonicMania:
+					protocol = "smmm:";
+					break;
+				case Game.Sonic1Forever:
+					protocol = "s1fmm:";
+					break;
+				case Game.Sonic2Absolute:
+					protocol = "s2amm:";
+					break;
 			}
 		}
 
@@ -346,55 +332,43 @@ namespace RSDKModManager
 			modTopButton.Enabled = modUpButton.Enabled = modDownButton.Enabled = modBottomButton.Enabled = configureModButton.Enabled = false;
 			modDescription.Text = "Description: No mod selected.";
 			modListView.Items.Clear();
-			mods = new Dictionary<string, ManiaModInfo>();
-			codes = new List<Code>(mainCodes.Codes);
+			mods = new Dictionary<string, RSDKModInfo>();
 			string modDir = Path.Combine(Environment.CurrentDirectory, "mods");
 
-			foreach (string filename in ManiaModInfo.GetModFiles(new DirectoryInfo(modDir)))
+			foreach (string filename in RSDKModInfo.GetModFiles(new DirectoryInfo(modDir)))
 			{
-				mods.Add((Path.GetDirectoryName(filename) ?? string.Empty).Substring(modDir.Length + 1), IniSerializer.Deserialize<ManiaModInfo>(filename));
+				mods.Add((Path.GetDirectoryName(filename) ?? string.Empty).Substring(modDir.Length + 1), IniSerializer.Deserialize<RSDKModInfo>(filename));
 			}
+
+			Dictionary<string, bool> modlist;
+			if (loaderini.EXEFile.Contains("RSDKv5"))
+				modlist = IniSerializer.Deserialize<ModConfigV5>(modconfigpath).Mods.Mods.ToDictionary(a => a.Key, a => a.Value.Equals("y", StringComparison.OrdinalIgnoreCase) || a.Value.Equals("true", StringComparison.OrdinalIgnoreCase));
+			else
+				modlist = IniSerializer.Deserialize<ModConfig>(modconfigpath).Mods.Mods.ToDictionary(a => a.Key, a => a.Value.Equals("y", StringComparison.OrdinalIgnoreCase) || a.Value.Equals("true", StringComparison.OrdinalIgnoreCase));
 
 			modListView.BeginUpdate();
 
-			foreach (string mod in new List<string>(loaderini.Mods))
+			foreach (var item in modlist)
 			{
-				if (mods.ContainsKey(mod))
+				if (mods.ContainsKey(item.Key))
 				{
-					ManiaModInfo inf = mods[mod];
-					suppressEvent = true;
-					modListView.Items.Add(new ListViewItem(new[] { inf.Name, inf.Author, inf.Version }) { Checked = true, Tag = mod });
-					suppressEvent = false;
-					if (!string.IsNullOrEmpty(inf.Codes))
-						codes.AddRange(CodeList.Load(Path.Combine(Path.Combine(modDir, mod), inf.Codes)).Codes);
+					RSDKModInfo inf = mods[item.Key];
+					modListView.Items.Add(new ListViewItem(new[] { inf.Name, inf.Author, inf.Version }) { Checked = item.Value, Tag = item.Key });
 				}
 				else
 				{
-					MessageBox.Show(this, "Mod \"" + mod + "\" could not be found.\n\nThis mod will be removed from the list.",
-						Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-					loaderini.Mods.Remove(mod);
+					MessageBox.Show(this, "Mod \"" + item.Key + "\" could not be found.\n\nThis mod will be removed from the list.",
+						base.Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
 				}
 			}
 
-			foreach (KeyValuePair<string, ManiaModInfo> inf in mods.OrderBy(x => x.Value.Name))
+			foreach (KeyValuePair<string, RSDKModInfo> inf in mods.OrderBy(x => x.Value.Name))
 			{
-				if (!loaderini.Mods.Contains(inf.Key))
+				if (!modlist.ContainsKey(inf.Key))
 					modListView.Items.Add(new ListViewItem(new[] { inf.Value.Name, inf.Value.Author, inf.Value.Version }) { Tag = inf.Key });
 			}
 
 			modListView.EndUpdate();
-
-			loaderini.EnabledCodes = new List<string>(loaderini.EnabledCodes.Where(a => codes.Any(c => c.Name == a)));
-			foreach (Code item in codes.Where(a => a.Required && !loaderini.EnabledCodes.Contains(a.Name)))
-				loaderini.EnabledCodes.Add(item.Name);
-
-			codesCheckedListBox.BeginUpdate();
-			codesCheckedListBox.Items.Clear();
-
-			foreach (Code item in codes)
-				codesCheckedListBox.Items.Add(item.Name, loaderini.EnabledCodes.Contains(item.Name));
-
-			codesCheckedListBox.EndUpdate();
 		}
 
 		private bool CheckForUpdates(bool force = false)
@@ -412,7 +386,7 @@ namespace RSDKModManager
 			checkedForUpdates = true;
 			loaderini.UpdateTime = DateTime.UtcNow.ToFileTimeUtc();
 
-			if (!File.Exists("maniamlver.txt"))
+			if (!File.Exists("rsdkmmver.txt"))
 			{
 				return false;
 			}
@@ -421,11 +395,11 @@ namespace RSDKModManager
 			{
 				try
 				{
-					string msg = wc.DownloadString("http://mm.reimuhakurei.net/toolchangelog.php?tool=maniaml&rev=" + File.ReadAllText("maniamlver.txt"));
+					string msg = wc.DownloadString("http://mm.reimuhakurei.net/toolchangelog.php?tool=rsdkmm&rev=" + File.ReadAllText("rsdkmmver.txt"));
 
 					if (msg.Length > 0)
 					{
-						using (var dlg = new UpdateMessageDialog("Mania", msg.Replace("\n", "\r\n")))
+						using (var dlg = new UpdateMessageDialog("RSDK", msg.Replace("\n", "\r\n")))
 						{
 							if (dlg.ShowDialog(this) == DialogResult.Yes)
 							{
@@ -447,7 +421,7 @@ namespace RSDKModManager
 									}
 								} while (result == DialogResult.Retry);
 
-								using (var dlg2 = new LoaderDownloadDialog("http://mm.reimuhakurei.net/misc/ManiaModLoader.7z", updatePath))
+								using (var dlg2 = new LoaderDownloadDialog("http://mm.reimuhakurei.net/misc/RSDKModManager.7z", updatePath))
 									if (dlg2.ShowDialog(this) == DialogResult.OK)
 									{
 										Close();
@@ -459,7 +433,7 @@ namespace RSDKModManager
 				}
 				catch
 				{
-					MessageBox.Show(this, "Unable to retrieve update information.", "Mania Mod Manager");
+					MessageBox.Show(this, "Unable to retrieve update information.", "RSDK Mod Manager");
 				}
 			}
 
@@ -878,136 +852,36 @@ namespace RSDKModManager
 
 		private void Save()
 		{
-			loaderini.Mods.Clear();
-
-			foreach (ListViewItem item in modListView.CheckedItems)
+			if (loaderini.EXEFile.Contains("RSDKv5"))
 			{
-				loaderini.Mods.Add((string)item.Tag);
+				ModConfigV5 modConfig = new ModConfigV5();
+
+				foreach (ListViewItem item in modListView.Items)
+				{
+					modConfig.Mods.Mods.Add((string)item.Tag, item.Checked ? "y" : "n");
+				}
+
+				IniSerializer.Serialize(modConfig, modconfigpath);
+			}
+			else
+			{
+				ModConfig modConfig = new ModConfig();
+
+				foreach (ListViewItem item in modListView.Items)
+				{
+					modConfig.Mods.Mods.Add((string)item.Tag, item.Checked ? "true" : "false");
+				}
+
+				IniSerializer.Serialize(modConfig, modconfigpath);
 			}
 
-			loaderini.EnableConsole = enableDebugConsole.Checked;
-			loaderini.StartingScene = startingScene.SelectedIndex;
-			loaderini.Platform = platformID.SelectedIndex;
-			loaderini.Region = region.SelectedIndex;
-			loaderini.UseOriginalMusicPlayer = origMusicPlayerCheckBox.Checked;
-			loaderini.SpeedShoesTempoChange = speedShoesTempoCheckBox.Checked;
-			loaderini.BlueSpheresTempoChange = blueSpheresTempoCheckBox.Checked;
 			loaderini.UpdateCheck = checkUpdateStartup.Checked;
 			loaderini.ModUpdateCheck = checkUpdateModsStartup.Checked;
 			loaderini.UpdateUnit = (UpdateUnit)comboUpdateFrequency.SelectedIndex;
 			loaderini.UpdateFrequency = (int)numericUpdateFrequency.Value;
 
 			IniSerializer.Serialize(loaderini, loaderinipath);
-
-			List<Code> selectedCodes = new List<Code>();
-			List<Code> selectedPatches = new List<Code>();
-
-			foreach (Code item in codesCheckedListBox.CheckedIndices.OfType<int>().Select(a => codes[a]))
-			{
-				if (item.Patch)
-					selectedPatches.Add(item);
-				else
-					selectedCodes.Add(item);
-			}
-
-			CodeList.WriteDatFile(patchdatpath, selectedPatches);
-			CodeList.WriteDatFile(codedatpath, selectedCodes);
 		}
-
-		static readonly string[] scenelist =
-		{
-			"",
-			"stage=Title;scene=1;",
-			"stage=Menu;scene=1;",
-			"stage=Thanks;scene=1;",
-			"stage=LSelect;scene=1;",
-			"stage=Credits;scene=1;",
-			"stage=Ending;scene=C;",
-			"stage=SPZ1;scene=1d;",
-			"stage=GHZ;scene=1;",
-			"stage=GHZ;scene=2;",
-			"stage=CPZ;scene=1;",
-			"stage=CPZ;scene=2;",
-			"stage=SPZ1;scene=1;",
-			"stage=SPZ2;scene=1;",
-			"stage=FBZ;scene=1;",
-			"stage=FBZ;scene=2;",
-			"stage=PSZ1;scene=1;",
-			"stage=PSZ2;scene=2;",
-			"stage=SSZ1;scene=1;",
-			"stage=SSZ2;scene=1;",
-			"stage=SSZ2;scene=2;",
-			"stage=HCZ;scene=1;",
-			"stage=HCZ;scene=2;",
-			"stage=MSZ;scene=1;",
-			"stage=MSZ;scene=1k;",
-			"stage=MSZ;scene=2;",
-			"stage=OOZ1;scene=1;",
-			"stage=OOZ2;scene=2;",
-			"stage=LRZ1;scene=1;",
-			"stage=LRZ2;scene=1;",
-			"stage=LRZ3;scene=1;",
-			"stage=MMZ;scene=1;",
-			"stage=MMZ;scene=2;",
-			"stage=TMZ1;scene=1;",
-			"stage=TMZ2;scene=1;",
-			"stage=TMZ3;scene=1;",
-			"stage=ERZ;scene=1;",
-			"stage=UFO1;scene=1;",
-			"stage=UFO2;scene=1;",
-			"stage=UFO3;scene=1;",
-			"stage=UFO4;scene=1;",
-			"stage=UFO5;scene=1;",
-			"stage=UFO6;scene=1;",
-			"stage=UFO7;scene=1;",
-			"stage=SpecialBS;scene=1;",
-			"stage=SpecialBS;scene=2;",
-			"stage=SpecialBS;scene=3;",
-			"stage=SpecialBS;scene=4;",
-			"stage=SpecialBS;scene=5;",
-			"stage=SpecialBS;scene=6;",
-			"stage=SpecialBS;scene=7;",
-			"stage=SpecialBS;scene=8;",
-			"stage=SpecialBS;scene=9;",
-			"stage=SpecialBS;scene=10;",
-			"stage=SpecialBS;scene=11;",
-			"stage=SpecialBS;scene=12;",
-			"stage=SpecialBS;scene=13;",
-			"stage=SpecialBS;scene=14;",
-			"stage=SpecialBS;scene=15;",
-			"stage=SpecialBS;scene=16;",
-			"stage=SpecialBS;scene=17;",
-			"stage=SpecialBS;scene=18;",
-			"stage=SpecialBS;scene=19;",
-			"stage=SpecialBS;scene=20;",
-			"stage=SpecialBS;scene=21;",
-			"stage=SpecialBS;scene=22;",
-			"stage=SpecialBS;scene=23;",
-			"stage=SpecialBS;scene=24;",
-			"stage=SpecialBS;scene=25;",
-			"stage=SpecialBS;scene=26;",
-			"stage=SpecialBS;scene=27;",
-			"stage=SpecialBS;scene=28;",
-			"stage=SpecialBS;scene=29;",
-			"stage=SpecialBS;scene=30;",
-			"stage=SpecialBS;scene=31;",
-			"stage=SpecialBS;scene=32;",
-			"stage=SpecialBS;scene=34;",
-			"stage=SpecialBS;scene=36;",
-			"stage=Puyo;scene=1;",
-			"stage=DAGarden;scene=1;",
-			"stage=AIZ;scene=1;",
-			"stage=GHZCutscene;scene=1;",
-			"stage=GHZCutscene;scene=2;",
-			"stage=MSZCutscene;scene=1;",
-			"stage=TimeTravel;scene=1;",
-			"stage=Ending;scene=T;",
-			"stage=Ending;scene=BS;",
-			"stage=Ending;scene=BT;",
-			"stage=Ending;scene=BK;",
-			"stage=Ending;scene=G;",
-			"stage=Ending;scene=TK;"
-		};
 
 		private void saveAndPlayButton_Click(object sender, EventArgs e)
 		{
@@ -1033,22 +907,9 @@ namespace RSDKModManager
 			}
 
 			Save();
-			if (!installed)
-				switch (MessageBox.Show(this, "Looks like you're starting the game without the mod loader installed. Without the mod loader, the mods and codes you've selected won't be used, and some settings may not work.\n\nDo you want to install the mod loader now?", "Mania Mod Manager", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button1))
-				{
-					case DialogResult.Cancel:
-						return;
-					case DialogResult.Yes:
-						File.Copy(platform == Platform.Steam ? loaderdllpath : loaderegsdllpath, datadllpath);
-						break;
-				}
-			System.Text.StringBuilder sb = new System.Text.StringBuilder();
-			if (enableDebugConsole.Checked)
-				sb.Append("console=true;");
-			if (startingScene.SelectedIndex > 0)
-				sb.Append(scenelist[startingScene.SelectedIndex]);
-			Process process = Process.Start("SonicMania.exe", sb.ToString());
-			process?.WaitForInputIdle(10000);
+			Process process = Process.Start(loaderini.EXEFile);
+			try { process?.WaitForInputIdle(10000); }
+			catch { }
 			Close();
 		}
 
@@ -1056,21 +917,6 @@ namespace RSDKModManager
 		{
 			Save();
 			LoadModList();
-		}
-
-		private void installButton_Click(object sender, EventArgs e)
-		{
-			if (installed)
-			{
-				File.Delete(datadllpath);
-				installButton.Text = "Install loader";
-			}
-			else
-			{
-				File.Copy(platform == Platform.Steam ? loaderdllpath : loaderegsdllpath, datadllpath);
-				installButton.Text = "Uninstall loader";
-			}
-			installed = !installed;
 		}
 
 		private void buttonRefreshModList_Click(object sender, EventArgs e)
@@ -1091,52 +937,6 @@ namespace RSDKModManager
 				if (ModDialog.ShowDialog() == DialogResult.OK)
 					LoadModList();
 			}
-		}
-
-		private void codesCheckedListBox_ItemCheck(object sender, ItemCheckEventArgs e)
-		{
-			Code code = codes[e.Index];
-			if (code.Required)
-				e.NewValue = CheckState.Checked;
-			if (e.NewValue == CheckState.Unchecked)
-			{
-				if (loaderini.EnabledCodes.Contains(code.Name))
-					loaderini.EnabledCodes.Remove(code.Name);
-			}
-			else
-			{
-				if (!loaderini.EnabledCodes.Contains(code.Name))
-					loaderini.EnabledCodes.Add(code.Name);
-			}
-		}
-
-		private void modListView_ItemCheck(object sender, ItemCheckEventArgs e)
-		{
-			if (suppressEvent) return;
-			codes = new List<Code>(mainCodes.Codes);
-			string modDir = Path.Combine(Environment.CurrentDirectory, "mods");
-			List<string> modlist = new List<string>();
-			foreach (ListViewItem item in modListView.CheckedItems)
-				modlist.Add((string)item.Tag);
-			if (e.NewValue == CheckState.Unchecked)
-				modlist.Remove((string)modListView.Items[e.Index].Tag);
-			else
-				modlist.Add((string)modListView.Items[e.Index].Tag);
-			foreach (string mod in modlist)
-				if (mods.ContainsKey(mod))
-				{
-					ModInfo inf = mods[mod];
-					if (!string.IsNullOrEmpty(inf.Codes))
-						codes.AddRange(CodeList.Load(Path.Combine(Path.Combine(modDir, mod), inf.Codes)).Codes);
-				}
-			loaderini.EnabledCodes = new List<string>(loaderini.EnabledCodes.Where(a => codes.Any(c => c.Name == a)));
-			foreach (Code item in codes.Where(a => a.Required && !loaderini.EnabledCodes.Contains(a.Name)))
-				loaderini.EnabledCodes.Add(item.Name);
-			codesCheckedListBox.BeginUpdate();
-			codesCheckedListBox.Items.Clear();
-			foreach (Code item in codes)
-				codesCheckedListBox.Items.Add(item.Name, loaderini.EnabledCodes.Contains(item.Name));
-			codesCheckedListBox.EndUpdate();
 		}
 
 		private void modListView_MouseClick(object sender, MouseEventArgs e)
@@ -1395,13 +1195,41 @@ namespace RSDKModManager
 
 		private void installURLHandlerButton_Click(object sender, EventArgs e)
 		{
-			Process.Start(new ProcessStartInfo(Application.ExecutablePath, "urlhandler") { UseShellExecute = true, Verb = "runas" }).WaitForExit();
+			if (!loaderini.Game.HasValue)
+			{
+				string exename = Path.GetFileName(loaderini.EXEFile ?? string.Empty).ToLowerInvariant();
+				Game tmpgame = (Game)(-1);
+				if (exename.StartsWith("rsdkv"))
+					switch (exename[5])
+					{
+						case '3':
+							tmpgame = Game.SonicCD;
+							break;
+						case '4':
+							tmpgame = Game.Sonic1;
+							break;
+						case '5':
+							tmpgame = Game.SonicMania;
+							break;
+					}
+				else if (exename.StartsWith("restored"))
+					tmpgame = Game.SonicCD;
+				else if (exename.StartsWith("sonicforever"))
+					tmpgame = Game.Sonic1Forever;
+				else if (exename.StartsWith("sonic2absolute"))
+					tmpgame = Game.Sonic2Absolute;
+				using (GameSelectForm gsf = new GameSelectForm(tmpgame))
+					if (gsf.ShowDialog(this) == DialogResult.OK)
+					{
+						loaderini.Game = gsf.Game;
+						SetURLProtocol();
+						Save();
+					}
+					else
+						return;
+			}
+			Process.Start(new ProcessStartInfo(Application.ExecutablePath, "urlhandler " + protocol.TrimEnd(':')) { UseShellExecute = true, Verb = "runas" }).WaitForExit();
 			MessageBox.Show(this, "URL handler installed!", Text);
-		}
-
-		private void origMusicPlayerCheckBox_CheckedChanged(object sender, EventArgs e)
-		{
-			blueSpheresTempoCheckBox.Enabled = speedShoesTempoCheckBox.Enabled = !origMusicPlayerCheckBox.Checked;
 		}
 	}
 }
