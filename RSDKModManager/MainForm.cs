@@ -335,16 +335,22 @@ namespace RSDKModManager
 			mods = new Dictionary<string, RSDKModInfo>();
 			string modDir = Path.Combine(Environment.CurrentDirectory, "mods");
 
+			if (!Directory.Exists(modDir))
+				Directory.CreateDirectory(modDir);
+
 			foreach (string filename in RSDKModInfo.GetModFiles(new DirectoryInfo(modDir)))
 			{
 				mods.Add((Path.GetDirectoryName(filename) ?? string.Empty).Substring(modDir.Length + 1), IniSerializer.Deserialize<RSDKModInfo>(filename));
 			}
 
-			Dictionary<string, bool> modlist;
-			if (loaderini.EXEFile.Contains("RSDKv5"))
-				modlist = IniSerializer.Deserialize<ModConfigV5>(modconfigpath).Mods.Mods.ToDictionary(a => a.Key, a => a.Value.Equals("y", StringComparison.OrdinalIgnoreCase) || a.Value.Equals("true", StringComparison.OrdinalIgnoreCase));
-			else
-				modlist = IniSerializer.Deserialize<ModConfig>(modconfigpath).Mods.Mods.ToDictionary(a => a.Key, a => a.Value.Equals("y", StringComparison.OrdinalIgnoreCase) || a.Value.Equals("true", StringComparison.OrdinalIgnoreCase));
+			Dictionary<string, bool> modlist = new Dictionary<string, bool>();
+			if (File.Exists(modconfigpath))
+			{
+				if (loaderini.EXEFile.Contains("RSDKv5"))
+					modlist = IniSerializer.Deserialize<ModConfigV5>(modconfigpath).Mods.Mods.ToDictionary(a => a.Key, a => a.Value.Equals("y", StringComparison.OrdinalIgnoreCase) || a.Value.Equals("true", StringComparison.OrdinalIgnoreCase));
+				else
+					modlist = IniSerializer.Deserialize<ModConfig>(modconfigpath).Mods.Mods.ToDictionary(a => a.Key, a => a.Value.Equals("y", StringComparison.OrdinalIgnoreCase) || a.Value.Equals("true", StringComparison.OrdinalIgnoreCase));
+			}
 
 			modListView.BeginUpdate();
 
