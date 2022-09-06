@@ -31,7 +31,7 @@ namespace RSDKModManager
 		{
 			this.listBox1 = new System.Windows.Forms.ListBox();
 			this.okButton = new System.Windows.Forms.Button();
-			this.cancelButton = new System.Windows.Forms.Button();
+			this.textBox1 = new System.Windows.Forms.TextBox();
 			this.SuspendLayout();
 			// 
 			// listBox1
@@ -53,23 +53,19 @@ namespace RSDKModManager
 			// okButton
 			// 
 			this.okButton.DialogResult = System.Windows.Forms.DialogResult.OK;
-			this.okButton.Enabled = false;
-			this.okButton.Location = new System.Drawing.Point(12, 100);
+			this.okButton.Location = new System.Drawing.Point(57, 126);
 			this.okButton.Name = "okButton";
 			this.okButton.Size = new System.Drawing.Size(75, 23);
 			this.okButton.TabIndex = 1;
 			this.okButton.Text = "&OK";
 			this.okButton.UseVisualStyleBackColor = true;
 			// 
-			// cancelButton
+			// textBox1
 			// 
-			this.cancelButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-			this.cancelButton.Location = new System.Drawing.Point(93, 100);
-			this.cancelButton.Name = "cancelButton";
-			this.cancelButton.Size = new System.Drawing.Size(75, 23);
-			this.cancelButton.TabIndex = 2;
-			this.cancelButton.Text = "&Cancel";
-			this.cancelButton.UseVisualStyleBackColor = true;
+			this.textBox1.Location = new System.Drawing.Point(12, 100);
+			this.textBox1.Name = "textBox1";
+			this.textBox1.Size = new System.Drawing.Size(120, 20);
+			this.textBox1.TabIndex = 2;
 			// 
 			// GameSelectForm
 			// 
@@ -78,19 +74,19 @@ namespace RSDKModManager
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.AutoSize = true;
 			this.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-			this.CancelButton = this.cancelButton;
-			this.ClientSize = new System.Drawing.Size(194, 151);
-			this.Controls.Add(this.cancelButton);
+			this.ClientSize = new System.Drawing.Size(194, 197);
+			this.Controls.Add(this.textBox1);
 			this.Controls.Add(this.okButton);
 			this.Controls.Add(this.listBox1);
+			this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
 			this.MaximizeBox = false;
 			this.MinimizeBox = false;
 			this.Name = "GameSelectForm";
 			this.ShowIcon = false;
 			this.ShowInTaskbar = false;
 			this.Text = "Select A Game";
-			this.Load += new System.EventHandler(this.GameSelectForm_Load);
 			this.ResumeLayout(false);
+			this.PerformLayout();
 
 		}
 
@@ -98,6 +94,6 @@ namespace RSDKModManager
 
 		private System.Windows.Forms.ListBox listBox1;
 		private System.Windows.Forms.Button okButton;
-		private System.Windows.Forms.Button cancelButton;
+		private System.Windows.Forms.TextBox textBox1;
 	}
 }

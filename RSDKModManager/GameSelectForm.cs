@@ -5,27 +5,19 @@ namespace RSDKModManager
 {
 	public partial class GameSelectForm : Form
 	{
-		private Game _game;
 		public GameSelectForm(Game game)
 		{
 			InitializeComponent();
-			_game = game;
-		}
-
-		private void GameSelectForm_Load(object sender, EventArgs e)
-		{
-			Game = _game;
+			listBox1.SelectedIndex = (int)game;
 		}
 
 		private void listBox1_SelectedIndexChanged(object sender, EventArgs e)
 		{
-			okButton.Enabled = listBox1.SelectedIndex != -1;
+			textBox1.Text = GameInfo.GetName(Game);
 		}
 
-		public Game Game
-		{
-			get => (Game)listBox1.SelectedIndex;
-			set => listBox1.SelectedIndex = (int)value;
-		}
+		public Game Game => (Game)listBox1.SelectedIndex;
+
+		public string GameName => textBox1.Text;
 	}
 }

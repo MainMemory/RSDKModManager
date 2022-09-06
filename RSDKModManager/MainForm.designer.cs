@@ -47,6 +47,7 @@
 			this.modDownButton = new System.Windows.Forms.Button();
 			this.modUpButton = new System.Windows.Forms.Button();
 			this.tabPage4 = new System.Windows.Forms.TabPage();
+			this.removeGameButton = new System.Windows.Forms.Button();
 			this.groupBox4 = new System.Windows.Forms.GroupBox();
 			this.buttonCheckForUpdates = new System.Windows.Forms.Button();
 			this.label4 = new System.Windows.Forms.Label();
@@ -65,6 +66,7 @@
 			this.toolStripMenuItem3 = new System.Windows.Forms.ToolStripSeparator();
 			this.developerToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.generateManifestToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+			this.gameSelector = new System.Windows.Forms.ComboBox();
 			this.tabControl1.SuspendLayout();
 			this.tabPage1.SuspendLayout();
 			this.tabPage4.SuspendLayout();
@@ -138,7 +140,7 @@
 			// 
 			this.saveButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
 			this.saveButton.FlatStyle = System.Windows.Forms.FlatStyle.System;
-			this.saveButton.Location = new System.Drawing.Point(87, 370);
+			this.saveButton.Location = new System.Drawing.Point(279, 366);
 			this.saveButton.Name = "saveButton";
 			this.saveButton.Size = new System.Drawing.Size(75, 22);
 			this.saveButton.TabIndex = 102;
@@ -150,7 +152,7 @@
 			// 
 			this.saveAndPlayButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
 			this.saveAndPlayButton.FlatStyle = System.Windows.Forms.FlatStyle.System;
-			this.saveAndPlayButton.Location = new System.Drawing.Point(3, 370);
+			this.saveAndPlayButton.Location = new System.Drawing.Point(195, 366);
 			this.saveAndPlayButton.Name = "saveAndPlayButton";
 			this.saveAndPlayButton.Size = new System.Drawing.Size(78, 22);
 			this.saveAndPlayButton.TabIndex = 101;
@@ -279,6 +281,7 @@
 			// 
 			// tabPage4
 			// 
+			this.tabPage4.Controls.Add(this.removeGameButton);
 			this.tabPage4.Controls.Add(this.groupBox4);
 			this.tabPage4.Controls.Add(this.installURLHandlerButton);
 			this.tabPage4.Location = new System.Drawing.Point(4, 22);
@@ -288,6 +291,19 @@
 			this.tabPage4.TabIndex = 3;
 			this.tabPage4.Text = "Options";
 			this.tabPage4.UseVisualStyleBackColor = true;
+			// 
+			// removeGameButton
+			// 
+			this.removeGameButton.AutoSize = true;
+			this.removeGameButton.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+			this.removeGameButton.Enabled = false;
+			this.removeGameButton.Location = new System.Drawing.Point(6, 102);
+			this.removeGameButton.Name = "removeGameButton";
+			this.removeGameButton.Size = new System.Drawing.Size(125, 23);
+			this.removeGameButton.TabIndex = 8;
+			this.removeGameButton.Text = "Remove Current Game";
+			this.removeGameButton.UseVisualStyleBackColor = true;
+			this.removeGameButton.Click += new System.EventHandler(this.removeGameButton_Click);
 			// 
 			// groupBox4
 			// 
@@ -390,7 +406,7 @@
 			// 
 			this.installURLHandlerButton.AutoSize = true;
 			this.installURLHandlerButton.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-			this.installURLHandlerButton.Location = new System.Drawing.Point(6, 102);
+			this.installURLHandlerButton.Location = new System.Drawing.Point(137, 102);
 			this.installURLHandlerButton.Name = "installURLHandlerButton";
 			this.installURLHandlerButton.Size = new System.Drawing.Size(109, 23);
 			this.installURLHandlerButton.TabIndex = 3;
@@ -472,11 +488,22 @@
 			this.generateManifestToolStripMenuItem.Text = "Generate manifest";
 			this.generateManifestToolStripMenuItem.Click += new System.EventHandler(this.generateManifestToolStripMenuItem_Click);
 			// 
+			// gameSelector
+			// 
+			this.gameSelector.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+			this.gameSelector.FormattingEnabled = true;
+			this.gameSelector.Location = new System.Drawing.Point(3, 368);
+			this.gameSelector.Name = "gameSelector";
+			this.gameSelector.Size = new System.Drawing.Size(186, 21);
+			this.gameSelector.TabIndex = 103;
+			this.gameSelector.SelectedIndexChanged += new System.EventHandler(this.gameSelector_SelectedIndexChanged);
+			// 
 			// MainForm
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.ClientSize = new System.Drawing.Size(384, 409);
+			this.Controls.Add(this.gameSelector);
 			this.Controls.Add(this.tabControl1);
 			this.Controls.Add(this.saveAndPlayButton);
 			this.Controls.Add(this.saveButton);
@@ -538,5 +565,7 @@
 		private System.Windows.Forms.NumericUpDown numericUpdateFrequency;
 		private System.Windows.Forms.ComboBox comboUpdateFrequency;
 		private System.Windows.Forms.CheckBox checkUpdateStartup;
+		private System.Windows.Forms.ComboBox gameSelector;
+		private System.Windows.Forms.Button removeGameButton;
 	}
 }

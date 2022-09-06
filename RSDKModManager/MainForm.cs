@@ -26,10 +26,13 @@ namespace RSDKModManager
 
 		private bool checkedForUpdates;
 
-		const string updatePath = "mods/.updates";
-		const string loaderinipath = "mods/RSDKModManager.ini";
-		const string modconfigpath = "mods/modConfig.ini";
+		const string updatePath = ".updates";
+		const string loaderinipath = "RSDKModManager.ini";
+		const string oldloaderinipath = "mods/RSDKModManager.ini";
+		const string _modconfigpath = "mods/modConfig.ini";
+		string modconfigpath = _modconfigpath;
 		RSDKLoaderInfo loaderini;
+		InstalledGame currentGame;
 		Dictionary<string, RSDKModInfo> mods;
 
 		readonly ModUpdater modUpdater = new ModUpdater();
@@ -71,10 +74,16 @@ namespace RSDKModManager
 		{
 			// Try to use TLS 1.2
 			try { ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072; } catch { }
-			if (!Debugger.IsAttached)
-				Environment.CurrentDirectory = Application.StartupPath;
 			SetDoubleBuffered(modListView, true);
-			loaderini = File.Exists(loaderinipath) ? IniSerializer.Deserialize<RSDKLoaderInfo>(loaderinipath) : new RSDKLoaderInfo();
+			if (File.Exists(loaderinipath))
+				loaderini = IniSerializer.Deserialize<RSDKLoaderInfo>(loaderinipath);
+			else if (File.Exists(oldloaderinipath))
+			{
+				loaderini = IniSerializer.Deserialize<RSDKLoaderInfo>(oldloaderinipath);
+				loaderini.Games = new List<InstalledGame>();
+			}
+			else
+				loaderini = new RSDKLoaderInfo();
 
 			checkUpdateStartup.Checked = loaderini.UpdateCheck;
 			checkUpdateModsStartup.Checked = loaderini.ModUpdateCheck;
@@ -82,7 +91,6 @@ namespace RSDKModManager
 			numericUpdateFrequency.Value = loaderini.UpdateFrequency;
 		}
 
-		string protocol;
 		private void HandleUri(string uri)
 		{
 			if (WindowState == FormWindowState.Minimized)
@@ -92,16 +100,31 @@ namespace RSDKModManager
 
 			Activate();
 
-			if (!uri.StartsWith(protocol))
+			string protocol = uri.Remove(uri.IndexOf(':'));
+			Game? game = GameInfo.GetGame(protocol);
+
+			if (!game.HasValue)
 			{
 				MessageBox.Show(this, $"Unknown URL {uri}!", Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+				return;
+			}
+
+			string folder;
+			if (currentGame.Game == game.Value)
+				folder = currentGame.Folder;
+			else
+				folder = loaderini.Games.FirstOrDefault(a => a.Game == game.Value)?.Folder;
+
+			if (folder == null)
+			{
+				MessageBox.Show(this, $"{GameInfo.GetName(game.Value)} is not installed!\n\nURI: {uri}", Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
 				return;
 			}
 
 			Uri url;
 			string name;
 			string author;
-			string[] split = uri.Substring(protocol.Length).Split(',');
+			string[] split = uri.Substring(protocol.Length + 1).Split(',');
 			url = new Uri(split[0]);
 			Dictionary<string, string> fields = new Dictionary<string, string>(split.Length - 1);
 			for (int i = 1; i < split.Length; i++)
@@ -209,7 +232,7 @@ namespace RSDKModManager
 				dummyPath = dummyPath.Replace(c, '_');
 			}
 
-			dummyPath = Path.Combine("mods", dummyPath);
+			dummyPath = Path.Combine(folder, "mods", dummyPath);
 
 			var updates = new List<ModDownload>
 			{
@@ -236,7 +259,7 @@ namespace RSDKModManager
 				}
 			} while (result == DialogResult.Retry);
 
-			LoadModList();
+			if (currentGame.Game == game.Value) LoadModList();
 		}
 
 		private void MainForm_Shown(object sender, EventArgs e)
@@ -244,74 +267,71 @@ namespace RSDKModManager
 			if (CheckForUpdates())
 				return;
 
-			if (string.IsNullOrEmpty(loaderini.EXEFile))
+			if (loaderini.Games.Count == 0)
 			{
-				using (OpenFileDialog dlg = new OpenFileDialog() { DefaultExt = "exe", Filter = "RSDK EXE Files|RSDKv*.exe;restored.exe;SonicForever.exe;Sonic2Absolute.exe|All Files|*", InitialDirectory = Environment.CurrentDirectory, RestoreDirectory = true, Title = "Locate the game's executable." })
-					if (dlg.ShowDialog(this) == DialogResult.OK)
+				if (!string.IsNullOrEmpty(loaderini.EXEFile))
+				{
+					InstalledGame game = new InstalledGame() { Folder = Environment.CurrentDirectory, EXEFile = loaderini.EXEFile, ModUpdateTime = loaderini.ModUpdateTime };
+					if (loaderini.Game.HasValue)
 					{
-						if (dlg.FileName.StartsWith(Environment.CurrentDirectory))
-							loaderini.EXEFile = dlg.FileName.Substring(Environment.CurrentDirectory.Length + 1);
-						else
-							loaderini.EXEFile = dlg.FileName;
+						game.Game = loaderini.Game.Value;
+						game.Name = GameInfo.GetName(game.Game);
 					}
 					else
-					{
-						Close();
-						return;
-					}
-			}
-
-			LoadModList();
-
-			if (loaderini.Game.HasValue)
-			{
-				SetURLProtocol();
-
-				List<string> uris = Program.UriQueue.GetUris();
-
-				foreach (string str in uris)
-				{
-					HandleUri(str);
+						using (GameSelectForm gsf = new GameSelectForm(GetDefaultGame(game.EXEFile.ToLowerInvariant())))
+						{
+							gsf.ShowDialog();
+							game.Game = gsf.Game;
+							game.Name = gsf.GameName;
+						}
+					loaderini.Games.Add(game);
+					loaderini.Game = null;
+					loaderini.EXEFile = null;
+					loaderini.ModUpdateTime = 0;
 				}
-
-				Program.UriQueue.UriEnqueued += UriQueueOnUriEnqueued;
+				else if (!AddGame())
+				{
+					Close();
+					return;
+				}
 			}
 
+			gameSelector.BeginUpdate();
+			foreach (var item in loaderini.Games)
+				gameSelector.Items.Add(item.Name);
+			gameSelector.Items.Add("New Game");
+			gameSelector.EndUpdate();
 
-			CheckForModUpdates();
+			gameSelector.SelectedIndex = loaderini.LastGame;
+			removeGameButton.Enabled = loaderini.Games.Count > 1;
 
-			// If we've checked for updates, save the modified
-			// last update times without requiring the user to
-			// click the save button.
-			if (checkedForUpdates)
+			List<string> uris = Program.UriQueue.GetUris();
+
+			foreach (string str in uris)
 			{
-				IniSerializer.Serialize(loaderini, loaderinipath);
+				HandleUri(str);
 			}
+
+			Program.UriQueue.UriEnqueued += UriQueueOnUriEnqueued;
 		}
 
-		private void SetURLProtocol()
+		private bool AddGame()
 		{
-			switch (loaderini.Game.Value)
-			{
-				case Game.SonicCD:
-					protocol = "scdmm:";
-					break;
-				case Game.Sonic1:
-					protocol = "s1mm:";
-					break;
-				case Game.Sonic2:
-					protocol = "s2mm:";
-					break;
-				case Game.SonicMania:
-					protocol = "smmm:";
-					break;
-				case Game.Sonic1Forever:
-					protocol = "s1fmm:";
-					break;
-				case Game.Sonic2Absolute:
-					protocol = "s2amm:";
-					break;
-			}
+			using (OpenFileDialog dlg = new OpenFileDialog() { DefaultExt = "exe", Filter = "RSDK EXE Files|RSDKv*.exe;restored.exe;SonicForever.exe;Sonic2Absolute.exe|All Files|*", RestoreDirectory = true, Title = "Locate the game's executable." })
+				if (dlg.ShowDialog(this) == DialogResult.OK)
+				{
+					InstalledGame game = new InstalledGame() { Folder = Path.GetDirectoryName(dlg.FileName), EXEFile = Path.GetFileName(dlg.FileName) };
+					using (GameSelectForm gsf = new GameSelectForm(GetDefaultGame(game.EXEFile.ToLowerInvariant())))
+					{
+						gsf.ShowDialog();
+						game.Game = gsf.Game;
+						game.Name = gsf.GameName;
+					}
+					loaderini.Games.Add(game);
+					return true;
+				}
+				else
+					return false;
 		}
 
 		private void UriQueueOnUriEnqueued(object sender, OnUriEnqueuedArgs args)
@@ -333,7 +353,7 @@ namespace RSDKModManager
 			modDescription.Text = "Description: No mod selected.";
 			modListView.Items.Clear();
 			mods = new Dictionary<string, RSDKModInfo>();
-			string modDir = Path.Combine(Environment.CurrentDirectory, "mods");
+			string modDir = Path.Combine(currentGame.Folder, "mods");
 
 			if (!Directory.Exists(modDir))
 				Directory.CreateDirectory(modDir);
@@ -346,7 +366,7 @@ namespace RSDKModManager
 			Dictionary<string, bool> modlist = new Dictionary<string, bool>();
 			if (File.Exists(modconfigpath))
 			{
-				if (loaderini.EXEFile.Contains("RSDKv5"))
+				if (currentGame.EXEFile.Contains("RSDKv5"))
 					modlist = IniSerializer.Deserialize<ModConfigV5>(modconfigpath).Mods.Mods.ToDictionary(a => a.Key, a => a.Value.Equals("y", StringComparison.OrdinalIgnoreCase) || a.Value.Equals("true", StringComparison.OrdinalIgnoreCase));
 				else
 					modlist = IniSerializer.Deserialize<ModConfig>(modconfigpath).Mods.Mods.ToDictionary(a => a.Key, a => a.Value.Equals("y", StringComparison.OrdinalIgnoreCase) || a.Value.Equals("true", StringComparison.OrdinalIgnoreCase));
@@ -427,7 +447,7 @@ namespace RSDKModManager
 									}
 								} while (result == DialogResult.Retry);
 
-								using (var dlg2 = new LoaderDownloadDialog("http://mm.reimuhakurei.net/misc/RSDKModManager.7z", updatePath))
+								using (var dlg2 = new LoaderDownloadDialog("https://mm.reimuhakurei.net/misc/RSDKModManager.7z", updatePath))
 									if (dlg2.ShowDialog(this) == DialogResult.OK)
 									{
 										Close();
@@ -478,13 +498,13 @@ namespace RSDKModManager
 
 			InitializeWorker();
 
-			if (!force && !UpdateTimeElapsed(loaderini.UpdateUnit, loaderini.UpdateFrequency, DateTime.FromFileTimeUtc(loaderini.ModUpdateTime)))
+			if (!force && !UpdateTimeElapsed(loaderini.UpdateUnit, loaderini.UpdateFrequency, DateTime.FromFileTimeUtc(currentGame.ModUpdateTime)))
 			{
 				return;
 			}
 
 			checkedForUpdates = true;
-			loaderini.ModUpdateTime = DateTime.UtcNow.ToFileTimeUtc();
+			currentGame.ModUpdateTime = DateTime.UtcNow.ToFileTimeUtc();
 			updateChecker.RunWorkerAsync(mods.Select(x => new KeyValuePair<string, ModInfo>(x.Key, x.Value)).ToList());
 			buttonCheckForUpdates.Enabled = false;
 		}
@@ -611,7 +631,7 @@ namespace RSDKModManager
 			var tokenSource = new CancellationTokenSource();
 			CancellationToken token = tokenSource.Token;
 
-			using (var task = new Task(() => modUpdater.GetModUpdates(updatableMods, out updates, out errors, token), token))
+			using (var task = new Task(() => modUpdater.GetModUpdates(updatableMods, out updates, out errors, token, currentGame.Folder), token))
 			{
 				task.Start();
 
@@ -666,7 +686,7 @@ namespace RSDKModManager
 							continue;
 						}
 
-						ModDownload d = modUpdater.GetGitHubReleases(mod, info.Item1, client, errors);
+						ModDownload d = modUpdater.GetGitHubReleases(mod, info.Item1, client, errors, currentGame.Folder);
 						if (d != null)
 						{
 							updates.Add(d);
@@ -674,7 +694,7 @@ namespace RSDKModManager
 					}
 					else if (!string.IsNullOrEmpty(mod.GameBananaItemType) && mod.GameBananaItemId.HasValue)
 					{
-						ModDownload d = modUpdater.GetGameBananaReleases(mod, info.Item1, errors);
+						ModDownload d = modUpdater.GetGameBananaReleases(mod, info.Item1, errors, currentGame.Folder);
 						if (d != null)
 						{
 							updates.Add(d);
@@ -686,7 +706,7 @@ namespace RSDKModManager
 							.Where(x => x.State == ModManifestState.Unchanged)
 							.Select(x => x.Current).ToList();
 
-						ModDownload d = modUpdater.CheckModularVersion(mod, info.Item1, localManifest, client, errors);
+						ModDownload d = modUpdater.CheckModularVersion(mod, info.Item1, localManifest, client, errors, currentGame.Folder);
 						if (d != null)
 						{
 							updates.Add(d);
@@ -858,7 +878,7 @@ namespace RSDKModManager
 
 		private void Save()
 		{
-			if (loaderini.EXEFile.Contains("RSDKv5"))
+			if (currentGame.EXEFile.Contains("RSDKv5"))
 			{
 				ModConfigV5 modConfig = new ModConfigV5();
 
@@ -913,7 +933,7 @@ namespace RSDKModManager
 			}
 
 			Save();
-			Process process = Process.Start(loaderini.EXEFile);
+			Process process = Process.Start(new ProcessStartInfo(Path.Combine(currentGame.Folder, currentGame.EXEFile)) { WorkingDirectory = currentGame.Folder });
 			try { process?.WaitForInputIdle(10000); }
 			catch { }
 			Close();
@@ -932,7 +952,7 @@ namespace RSDKModManager
 
 		private void configureModButton_Click(object sender, EventArgs e)
 		{
-			using (ModConfigDialog dlg = new ModConfigDialog(Path.Combine("mods", (string)modListView.SelectedItems[0].Tag), modListView.SelectedItems[0].Text))
+			using (ModConfigDialog dlg = new ModConfigDialog(Path.Combine(currentGame.Folder, "mods", (string)modListView.SelectedItems[0].Tag), modListView.SelectedItems[0].Text))
 				dlg.ShowDialog(this);
 		}
 
@@ -962,7 +982,7 @@ namespace RSDKModManager
 		{
 			foreach (ListViewItem item in modListView.SelectedItems)
 			{
-				Process.Start(Path.Combine("mods", (string)item.Tag));
+				Process.Start(Path.Combine(currentGame.Folder, "mods", (string)item.Tag));
 			}
 		}
 
@@ -987,7 +1007,7 @@ namespace RSDKModManager
 			foreach (ListViewItem item in modListView.SelectedItems)
 			{
 				var dir = (string)item.Tag;
-				var modDir = Path.Combine("mods", dir);
+				var modDir = Path.Combine(currentGame.Folder, "mods", dir);
 				var manpath = Path.Combine(modDir, "mod.manifest");
 
 				try
@@ -1056,7 +1076,7 @@ namespace RSDKModManager
 
 			foreach (ListViewItem item in modListView.SelectedItems)
 			{
-				var modPath = Path.Combine("mods", (string)item.Tag);
+				var modPath = Path.Combine(currentGame.Folder, "mods", (string)item.Tag);
 				var manifestPath = Path.Combine(modPath, "mod.manifest");
 
 				List<ModManifestEntry> manifest;
@@ -1131,7 +1151,7 @@ namespace RSDKModManager
 		{
 			List<Tuple<string, ModInfo>> items = modListView.SelectedItems.Cast<ListViewItem>()
 				.Select(x => (string)x.Tag)
-				.Where(x => File.Exists(Path.Combine("mods", x, "mod.manifest")))
+				.Where(x => File.Exists(Path.Combine(currentGame.Folder, "mods", x, "mod.manifest")))
 				.Select(x => new Tuple<string, ModInfo>(x, mods[x]))
 				.ToList();
 
@@ -1201,41 +1221,59 @@ namespace RSDKModManager
 
 		private void installURLHandlerButton_Click(object sender, EventArgs e)
 		{
-			if (!loaderini.Game.HasValue)
-			{
-				string exename = Path.GetFileName(loaderini.EXEFile ?? string.Empty).ToLowerInvariant();
-				Game tmpgame = (Game)(-1);
-				if (exename.StartsWith("rsdkv"))
-					switch (exename[5])
-					{
-						case '3':
-							tmpgame = Game.SonicCD;
-							break;
-						case '4':
-							tmpgame = Game.Sonic1;
-							break;
-						case '5':
-							tmpgame = Game.SonicMania;
-							break;
-					}
-				else if (exename.StartsWith("restored"))
-					tmpgame = Game.SonicCD;
-				else if (exename.StartsWith("sonicforever"))
-					tmpgame = Game.Sonic1Forever;
-				else if (exename.StartsWith("sonic2absolute"))
-					tmpgame = Game.Sonic2Absolute;
-				using (GameSelectForm gsf = new GameSelectForm(tmpgame))
-					if (gsf.ShowDialog(this) == DialogResult.OK)
-					{
-						loaderini.Game = gsf.Game;
-						SetURLProtocol();
-						Save();
-					}
-					else
-						return;
-			}
-			Process.Start(new ProcessStartInfo(Application.ExecutablePath, "urlhandler " + protocol.TrimEnd(':')) { UseShellExecute = true, Verb = "runas" }).WaitForExit();
+			Process.Start(new ProcessStartInfo(Application.ExecutablePath, "urlhandler " + GameInfo.GetProtocol(currentGame.Game)) { UseShellExecute = true, Verb = "runas" }).WaitForExit();
 			MessageBox.Show(this, "URL handler installed!", Text);
+		}
+
+		private static Game GetDefaultGame(string exename)
+		{
+			Game tmpgame = 0;
+			if (exename.StartsWith("rsdkv"))
+				switch (exename[5])
+				{
+					case '3':
+						tmpgame = Game.SonicCD;
+						break;
+					case '4':
+						tmpgame = Game.Sonic1;
+						break;
+					case '5':
+						tmpgame = Game.SonicMania;
+						break;
+				}
+			else if (exename.StartsWith("restored"))
+				tmpgame = Game.SonicCD;
+			else if (exename.StartsWith("sonicforever"))
+				tmpgame = Game.Sonic1Forever;
+			else if (exename.StartsWith("sonic2absolute"))
+				tmpgame = Game.Sonic2Absolute;
+			return tmpgame;
+		}
+
+		private void gameSelector_SelectedIndexChanged(object sender, EventArgs e)
+		{
+			if (gameSelector.SelectedIndex == -1) return;
+			if (gameSelector.SelectedIndex >= loaderini.Games.Count && AddGame())
+			{
+				gameSelector.Items.Insert(gameSelector.Items.Count - 1, loaderini.Games.Last().Name);
+				gameSelector.SelectedIndex = gameSelector.Items.Count - 2;
+				removeGameButton.Enabled = loaderini.Games.Count > 1;
+				return;
+			}
+			loaderini.LastGame = gameSelector.SelectedIndex;
+			currentGame = loaderini.Games[gameSelector.SelectedIndex];
+			modconfigpath = Path.Combine(currentGame.Folder, _modconfigpath);
+			LoadModList();
+			CheckForModUpdates();
+			if (checkedForUpdates)
+				IniSerializer.Serialize(loaderini, loaderinipath);
+		}
+
+		private void removeGameButton_Click(object sender, EventArgs e)
+		{
+			loaderini.Games.RemoveAt(gameSelector.SelectedIndex);
+			gameSelector.Items.RemoveAt(gameSelector.SelectedIndex);
+			gameSelector.SelectedIndex = 0;
 		}
 	}
 }
