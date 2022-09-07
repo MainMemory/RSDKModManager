@@ -490,6 +490,7 @@
 			// 
 			// gameSelector
 			// 
+			this.gameSelector.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
 			this.gameSelector.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
 			this.gameSelector.FormattingEnabled = true;
 			this.gameSelector.Location = new System.Drawing.Point(3, 368);
