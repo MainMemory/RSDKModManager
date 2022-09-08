@@ -95,6 +95,7 @@ namespace RSDKModManager
 			autoCloseCheckBox.Checked = loaderini.AutoClose;
 		}
 
+		static readonly System.Text.RegularExpressions.Regex githubdl = new System.Text.RegularExpressions.Regex(@"https://github.com/([^/]+/[^/]+)/releases/download/.+/(.+)", System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 		private void HandleUri(string uri)
 		{
 			if (WindowState == FormWindowState.Minimized)
@@ -136,15 +137,14 @@ namespace RSDKModManager
 				int ind = split[i].IndexOf(':');
 				fields.Add(split[i].Substring(0, ind).ToLowerInvariant(), split[i].Substring(ind + 1));
 			}
+			string gbItemType = null;
+			long gbItemId = 0;
 			if (fields.ContainsKey("gb_itemtype") && fields.ContainsKey("gb_itemid"))
 			{
-				string itemType;
-				long itemId;
-
 				try
 				{
-					itemType = fields["gb_itemtype"];
-					itemId = long.Parse(fields["gb_itemid"]);
+					gbItemType = fields["gb_itemtype"];
+					gbItemId = long.Parse(fields["gb_itemid"]);
 				}
 				catch (Exception ex)
 				{
@@ -161,7 +161,7 @@ namespace RSDKModManager
 
 				try
 				{
-					gbi = GameBananaItem.Load(itemType, itemId);
+					gbi = GameBananaItem.Load(gbItemType, gbItemId);
 
 					if (gbi is null)
 					{
@@ -262,6 +262,32 @@ namespace RSDKModManager
 						"Directory Deletion Failed", MessageBoxButtons.RetryCancel);
 				}
 			} while (result == DialogResult.Retry);
+
+			try
+			{
+				string modinipath = Path.Combine(dummyPath, "mod.ini");
+				RSDKModInfo modInfo = IniSerializer.Deserialize<RSDKModInfo>(modinipath);
+				if (modInfo.GameBananaItemType == null && modInfo.GitHubRepo == null && modInfo.UpdateUrl == null)
+				{
+					if (gbItemType != null)
+					{
+						modInfo.GameBananaItemType = gbItemType;
+						modInfo.GameBananaItemId = gbItemId;
+						IniSerializer.Serialize(modInfo, modinipath);
+					}
+					else
+					{
+						var match = githubdl.Match(split[0]);
+						if (match.Success)
+						{
+							modInfo.GitHubRepo = match.Groups[1].Value;
+							modInfo.GitHubAsset = match.Groups[2].Value;
+							IniSerializer.Serialize(modInfo, modinipath);
+						}
+					}
+				}
+			}
+			catch { }
 
 			if (currentGame.Game == game.Value) LoadModList();
 		}
