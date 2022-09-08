@@ -67,6 +67,7 @@
 			this.developerToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.generateManifestToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.gameSelector = new System.Windows.Forms.ComboBox();
+			this.autoCloseCheckBox = new System.Windows.Forms.CheckBox();
 			this.tabControl1.SuspendLayout();
 			this.tabPage1.SuspendLayout();
 			this.tabPage4.SuspendLayout();
@@ -281,6 +282,7 @@
 			// 
 			// tabPage4
 			// 
+			this.tabPage4.Controls.Add(this.autoCloseCheckBox);
 			this.tabPage4.Controls.Add(this.removeGameButton);
 			this.tabPage4.Controls.Add(this.groupBox4);
 			this.tabPage4.Controls.Add(this.installURLHandlerButton);
@@ -297,7 +299,7 @@
 			this.removeGameButton.AutoSize = true;
 			this.removeGameButton.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
 			this.removeGameButton.Enabled = false;
-			this.removeGameButton.Location = new System.Drawing.Point(6, 102);
+			this.removeGameButton.Location = new System.Drawing.Point(6, 126);
 			this.removeGameButton.Name = "removeGameButton";
 			this.removeGameButton.Size = new System.Drawing.Size(125, 23);
 			this.removeGameButton.TabIndex = 8;
@@ -406,7 +408,7 @@
 			// 
 			this.installURLHandlerButton.AutoSize = true;
 			this.installURLHandlerButton.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-			this.installURLHandlerButton.Location = new System.Drawing.Point(137, 102);
+			this.installURLHandlerButton.Location = new System.Drawing.Point(137, 126);
 			this.installURLHandlerButton.Name = "installURLHandlerButton";
 			this.installURLHandlerButton.Size = new System.Drawing.Size(109, 23);
 			this.installURLHandlerButton.TabIndex = 3;
@@ -499,6 +501,16 @@
 			this.gameSelector.TabIndex = 103;
 			this.gameSelector.SelectedIndexChanged += new System.EventHandler(this.gameSelector_SelectedIndexChanged);
 			// 
+			// autoCloseCheckBox
+			// 
+			this.autoCloseCheckBox.AutoSize = true;
+			this.autoCloseCheckBox.Location = new System.Drawing.Point(7, 103);
+			this.autoCloseCheckBox.Name = "autoCloseCheckBox";
+			this.autoCloseCheckBox.Size = new System.Drawing.Size(162, 17);
+			this.autoCloseCheckBox.TabIndex = 9;
+			this.autoCloseCheckBox.Text = "Automatically Close Manager";
+			this.autoCloseCheckBox.UseVisualStyleBackColor = true;
+			// 
 			// MainForm
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -568,5 +580,6 @@
 		private System.Windows.Forms.CheckBox checkUpdateStartup;
 		private System.Windows.Forms.ComboBox gameSelector;
 		private System.Windows.Forms.Button removeGameButton;
+		private System.Windows.Forms.CheckBox autoCloseCheckBox;
 	}
 }

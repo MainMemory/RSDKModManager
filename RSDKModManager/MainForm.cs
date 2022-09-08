@@ -91,6 +91,7 @@ namespace RSDKModManager
 			checkUpdateModsStartup.Checked = loaderini.ModUpdateCheck;
 			comboUpdateFrequency.SelectedIndex = (int)loaderini.UpdateUnit;
 			numericUpdateFrequency.Value = loaderini.UpdateFrequency;
+			autoCloseCheckBox.Checked = loaderini.AutoClose;
 		}
 
 		private void HandleUri(string uri)
@@ -907,6 +908,7 @@ namespace RSDKModManager
 			loaderini.ModUpdateCheck = checkUpdateModsStartup.Checked;
 			loaderini.UpdateUnit = (UpdateUnit)comboUpdateFrequency.SelectedIndex;
 			loaderini.UpdateFrequency = (int)numericUpdateFrequency.Value;
+			loaderini.AutoClose = autoCloseCheckBox.Checked;
 
 			IniSerializer.Serialize(loaderini, loaderinipath);
 		}
@@ -938,7 +940,8 @@ namespace RSDKModManager
 			Process process = Process.Start(new ProcessStartInfo(Path.Combine(currentGame.Folder, currentGame.EXEFile)) { WorkingDirectory = currentGame.Folder });
 			try { process?.WaitForInputIdle(10000); }
 			catch { }
-			Close();
+			if (autoCloseCheckBox.Checked)
+				Close();
 		}
 
 		private void saveButton_Click(object sender, EventArgs e)
