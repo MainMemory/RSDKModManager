@@ -33,6 +33,7 @@ namespace RSDKModManager
 		string modconfigpath = _modconfigpath;
 		RSDKLoaderInfo loaderini;
 		InstalledGame currentGame;
+		bool isv5 = false;
 		Dictionary<string, RSDKModInfo> mods;
 
 		readonly ModUpdater modUpdater = new ModUpdater();
@@ -369,11 +370,16 @@ namespace RSDKModManager
 			Dictionary<string, bool> modlist = new Dictionary<string, bool>();
 			if (File.Exists(modconfigpath))
 			{
-				if (currentGame.EXEFile.Contains("RSDKv5"))
-					modlist = IniSerializer.Deserialize<ModConfigV5>(modconfigpath).Mods.Mods.ToDictionary(a => a.Key, a => a.Value.Equals("y", StringComparison.OrdinalIgnoreCase) || a.Value.Equals("true", StringComparison.OrdinalIgnoreCase));
-				else
-					modlist = IniSerializer.Deserialize<ModConfig>(modconfigpath).Mods.Mods.ToDictionary(a => a.Key, a => a.Value.Equals("y", StringComparison.OrdinalIgnoreCase) || a.Value.Equals("true", StringComparison.OrdinalIgnoreCase));
+				ModConfig modConfig = IniSerializer.Deserialize<ModConfig>(modconfigpath);
+				if (modConfig.Mods != null && modConfig.Mods.Mods != null)
+				{
+					modlist = modConfig.Mods.Mods;
+					isv5 = modConfig.IsV5;
+				}
 			}
+
+			if (modlist.Count == 0)
+				isv5 = currentGame.EXEFile.Contains("RSDKv5");
 
 			modListView.BeginUpdate();
 
@@ -881,28 +887,14 @@ namespace RSDKModManager
 
 		private void Save()
 		{
-			if (currentGame.EXEFile.Contains("RSDKv5"))
+			ModConfig modConfig = new ModConfig() { IsV5 = isv5 };
+
+			foreach (ListViewItem item in modListView.Items)
 			{
-				ModConfigV5 modConfig = new ModConfigV5();
-
-				foreach (ListViewItem item in modListView.Items)
-				{
-					modConfig.Mods.Mods.Add((string)item.Tag, item.Checked ? "y" : "n");
-				}
-
-				IniSerializer.Serialize(modConfig, modconfigpath);
+				modConfig.Mods.Mods.Add((string)item.Tag, item.Checked);
 			}
-			else
-			{
-				ModConfig modConfig = new ModConfig();
 
-				foreach (ListViewItem item in modListView.Items)
-				{
-					modConfig.Mods.Mods.Add((string)item.Tag, item.Checked ? "true" : "false");
-				}
-
-				IniSerializer.Serialize(modConfig, modconfigpath);
-			}
+			IniSerializer.Serialize(modConfig, modconfigpath);
 
 			loaderini.UpdateCheck = checkUpdateStartup.Checked;
 			loaderini.ModUpdateCheck = checkUpdateModsStartup.Checked;
