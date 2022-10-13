@@ -75,7 +75,7 @@ namespace RSDKModManager
 			}
 
 			List<string> uris = args
-				.ToList();
+				.Where(a => a.IndexOf(':') != -1).ToList();
 
 			if (uris.Count > 0)
 			{
