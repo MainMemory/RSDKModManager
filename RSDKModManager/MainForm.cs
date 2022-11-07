@@ -383,7 +383,7 @@ namespace RSDKModManager
 			modDescription.Text = "Description: No mod selected.";
 			modListView.Items.Clear();
 			mods = new Dictionary<string, RSDKModInfo>();
-			string modDir = Path.Combine(currentGame.Folder, "mods");
+			string modDir = Path.GetFullPath(Path.Combine(currentGame.Folder, "mods"));
 
 			if (!Directory.Exists(modDir))
 				Directory.CreateDirectory(modDir);
@@ -955,7 +955,7 @@ namespace RSDKModManager
 			}
 
 			Save();
-			Process process = Process.Start(new ProcessStartInfo(Path.Combine(currentGame.Folder, currentGame.EXEFile)) { WorkingDirectory = currentGame.Folder });
+			Process process = Process.Start(new ProcessStartInfo(Path.GetFullPath(Path.Combine(currentGame.Folder, currentGame.EXEFile))) { WorkingDirectory = Path.GetFullPath(currentGame.Folder) });
 			try { process?.WaitForInputIdle(10000); }
 			catch { }
 			if (autoCloseCheckBox.Checked)
