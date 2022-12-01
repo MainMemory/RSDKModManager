@@ -47,6 +47,7 @@
 			this.modDownButton = new System.Windows.Forms.Button();
 			this.modUpButton = new System.Windows.Forms.Button();
 			this.tabPage4 = new System.Windows.Forms.TabPage();
+			this.autoCloseCheckBox = new System.Windows.Forms.CheckBox();
 			this.removeGameButton = new System.Windows.Forms.Button();
 			this.groupBox4 = new System.Windows.Forms.GroupBox();
 			this.buttonCheckForUpdates = new System.Windows.Forms.Button();
@@ -67,7 +68,6 @@
 			this.developerToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.generateManifestToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
 			this.gameSelector = new System.Windows.Forms.ComboBox();
-			this.autoCloseCheckBox = new System.Windows.Forms.CheckBox();
 			this.tabControl1.SuspendLayout();
 			this.tabPage1.SuspendLayout();
 			this.tabPage4.SuspendLayout();
@@ -100,6 +100,7 @@
 			// 
 			// modListView
 			// 
+			this.modListView.AllowDrop = true;
 			this.modListView.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
@@ -293,6 +294,16 @@
 			this.tabPage4.TabIndex = 3;
 			this.tabPage4.Text = "Options";
 			this.tabPage4.UseVisualStyleBackColor = true;
+			// 
+			// autoCloseCheckBox
+			// 
+			this.autoCloseCheckBox.AutoSize = true;
+			this.autoCloseCheckBox.Location = new System.Drawing.Point(7, 103);
+			this.autoCloseCheckBox.Name = "autoCloseCheckBox";
+			this.autoCloseCheckBox.Size = new System.Drawing.Size(162, 17);
+			this.autoCloseCheckBox.TabIndex = 9;
+			this.autoCloseCheckBox.Text = "Automatically Close Manager";
+			this.autoCloseCheckBox.UseVisualStyleBackColor = true;
 			// 
 			// removeGameButton
 			// 
@@ -500,16 +511,6 @@
 			this.gameSelector.Size = new System.Drawing.Size(186, 21);
 			this.gameSelector.TabIndex = 103;
 			this.gameSelector.SelectedIndexChanged += new System.EventHandler(this.gameSelector_SelectedIndexChanged);
-			// 
-			// autoCloseCheckBox
-			// 
-			this.autoCloseCheckBox.AutoSize = true;
-			this.autoCloseCheckBox.Location = new System.Drawing.Point(7, 103);
-			this.autoCloseCheckBox.Name = "autoCloseCheckBox";
-			this.autoCloseCheckBox.Size = new System.Drawing.Size(162, 17);
-			this.autoCloseCheckBox.TabIndex = 9;
-			this.autoCloseCheckBox.Text = "Automatically Close Manager";
-			this.autoCloseCheckBox.UseVisualStyleBackColor = true;
 			// 
 			// MainForm
 			// 
